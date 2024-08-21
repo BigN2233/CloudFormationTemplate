@@ -1,0 +1,47 @@
+---
+Resources:
+  SiteSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow access on ports 80 and 22
+      GroupName: Website SG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 
+      Tags:
+        - Key: Name
+          Value: Website SG
+      VpcId: 
+
+  SiteInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      SubnetId: 
+      SecurityGroupIds:
+        - !Ref SiteSG
+      KeyName: SitePair
+      ImageId: ami-0c8e23f950c7725b9 
+      Tags:
+        - Key: Name
+          Value: MySiteServer
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            sudo su
+            yum update -y
+            yum install -y httpd
+            cd /var/www/html
+            wget https://github.com/azeezsalu/techmax/archive/refs/heads/main.zip
+            unzip main.zip
+            cp -r techmax-main/* /var/www/html/
+            rm -rf techmax-main main.zip
+            systemctl enable httpd 
+            systemctl start httpd
