@@ -1,37 +1,5 @@
-AWSTemplateFormatVersion: 2010-09-09
+---
 Resources:
-  sitewbucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: sitewbucket
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
-    DeletionPolicy: Retain
-    UpdateReplacePolicy: Retain
-  BucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      PolicyDocument:
-        Id: MyPolicy
-        Version: 2012-10-17
-        Statement:
-          - Sid: PublicReadForGetBucketObjects
-            Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
-            Resource: !Join 
-              - ''
-              - - 'arn:aws:s3:::'
-                - !Ref sitewbucket
-                - /*
-      Bucket: !Ref sitewbucket
-      
   SiteSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -55,7 +23,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
-      SubnetId: subnet-d3f6dadd
+      SubnetId: 
       SecurityGroupIds:
         - !Ref SiteSG
       KeyName: SitePair
@@ -70,7 +38,11 @@ Resources:
             sudo su
             yum update -y
             yum install -y httpd
+            cd /var/www/html
+            wget https://github.com/azeezsalu/techmax/archive/refs/heads/main.zip
+            unzip main.zip
+            cp -r techmax-main/* /var/www/html/
+            rm -rf techmax-main main.zip
             systemctl enable httpd 
             systemctl start httpd
-            echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
             
