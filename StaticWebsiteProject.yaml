@@ -1,24 +1,40 @@
 AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  BucketName:
+    Description: The name of the S3 bucket
+    Type: String
+    AllowedPattern: '^[a-zA-Z0-9.-_]{3,63}$'
+    ConstraintDescription: Bucket name can contain only letters, numbers, periods, hyphens.
+  IndexDocumentName:
+    Description: The name of the index document for S3 Static Website
+    Type: String
+  ErrorDocumentName:
+    Description: The name of the error document for S3 Static Website
+    Type: String
+  BucketIdName:
+    Description: The name of the bucket policy Id for S3 Static Website
+    Type: String
+
 Resources:
   sitewbucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: sitewbucket
+      BucketName: !Ref BucketName
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
         IgnorePublicAcls: false
         RestrictPublicBuckets: false
       WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: error.html
+        IndexDocument: !Ref IndexDocumentName
+        ErrorDocument: !Ref ErrorDocumentName
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
   BucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
       PolicyDocument:
-        Id: MyPolicy
+        Id: !Ref BucketIdName
         Version: 2012-10-17
         Statement:
           - Sid: PublicReadForGetBucketObjects
@@ -28,49 +44,18 @@ Resources:
             Resource: !Join 
               - ''
               - - 'arn:aws:s3:::'
-                - !Ref sitewbucket
+                - !Ref BucketName
                 - /*
-      Bucket: !Ref sitewbucket
-      
-  SiteSG:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow access on ports 80 and 22
-      GroupName: Website SG
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 
-      Tags:
-        - Key: Name
-          Value: Website SG
-      VpcId: 
+      Bucket: !Ref BucketName
 
-  SiteInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      SubnetId: subnet-d3f6dadd
-      SecurityGroupIds:
-        - !Ref SiteSG
-      KeyName: SitePair
-      ImageId: ami-0c8e23f950c7725b9 
-      Tags:
-        - Key: Name
-          Value: MySiteServer
-      UserData:
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash -xe
-            sudo su
-            yum update -y
-            yum install -y httpd
-            systemctl enable httpd 
-            systemctl start httpd
-            echo "<h1>Hello World from $(hostname -f)</h1>" > /var/www/html/index.html
-            
+Outputs:
+  BucketNameOutput:
+    Description: The name of the S3 bucket
+    Value: !Ref sitewbucket
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+  WebsiteEndpoint:
+    Description: The website endpoint of the S3 bucket
+    Value: !GetAtt sitewbucket.WebsiteURL
+    Export:
+      Name: !Sub "${AWS::StackName}-WebsiteEndpoint" 
